@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Keno Platform Lite</title>
+<style>
+:root{--bg:#0b0f17;--card:#141b27;--line:#243044;--tx:#e6ebf4;--mu:#8b98ad;--ac:#4cc9a6;--wn:#f5b942;--er:#ff6b6b;--bl:#5aa9ff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding-bottom:68px}
+header{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px}
+h1{font-size:17px;margin:0}h2{font-size:15px;margin:0 0 8px}
+.pill{font-size:12px;padding:3px 9px;border-radius:99px;border:1px solid var(--line);color:var(--mu)}
+.pill.ok{color:var(--ac);border-color:var(--ac)}.pill.wn{color:var(--wn);border-color:var(--wn)}
+.disc{background:#2a2112;border-bottom:1px solid #5b4514;color:#f3d894;font-size:12px;padding:7px 14px}
+.wrap{padding:12px;max-width:980px;margin:auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+@media(min-width:640px){.grid{grid-template-columns:repeat(3,1fr)}}
+.kpi{background:#0f1520;border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.kpi b{display:block;font-size:17px}.kpi span{color:var(--mu);font-size:12px}
+button,select,input,textarea{font:inherit;color:var(--tx);background:#0f1520;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+button.p{background:var(--ac);color:#04251c;border-color:var(--ac);font-weight:600}
+button:disabled{opacity:.45}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#0e1420;border-top:1px solid var(--line);z-index:5}
+nav button{flex:1;border:0;border-radius:0;background:none;padding:12px 2px;font-size:12.5px;color:var(--mu)}
+nav button.on{color:var(--ac);box-shadow:inset 0 2px 0 var(--ac)}
+.sec{display:none}.sec.on{display:block}
+.tw{overflow-x:auto;max-height:70vh}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{cursor:pointer;color:var(--mu);position:sticky;top:0;background:var(--card)}
+td.why{white-space:normal;min-width:240px;text-align:left;color:var(--mu);font-size:12px}
+.ball{display:inline-block;min-width:28px;text-align:center;padding:2px 0;border-radius:99px;background:#1d2a40;font-weight:600}
+.chip{display:inline-block;padding:5px 11px;border-radius:99px;border:1px solid var(--line);margin:0 6px 6px 0;background:#0f1520;color:var(--tx)}
+.chip.on{background:var(--ac);color:#04251c;border-color:var(--ac)}
+.chip.er{border-color:var(--er);color:var(--er)}
+.mu{color:var(--mu)}.er{color:var(--er)}.wn{color:var(--wn)}.ac{color:var(--ac)}
+.bar{height:8px;background:#0f1520;border-radius:4px;overflow:hidden;margin:6px 0}.bar i{display:block;height:100%;width:0;background:var(--ac)}
+#msg div{padding:8px 10px;border-radius:8px;margin-bottom:6px;font-size:13px;border:1px solid var(--line)}
+#msg .e{border-color:var(--er);color:#ffb3b3}#msg .w{border-color:var(--wn);color:#f3d894}#msg .o{border-color:var(--ac);color:#a8efdc}
+details summary{cursor:pointer;color:var(--bl)}
+textarea{width:100%;min-height:80px}
+</style></head><body>
+<header><h1>Keno Platform Lite</h1><span id="pill" class="pill">Chưa có dữ liệu</span></header>
+<div class="disc">⚠ Keno là trò chơi ngẫu nhiên. Thống kê lịch sử chỉ mô tả dữ liệu đã qua, không dự đoán kết quả và không đảm bảo tăng khả năng trúng thưởng.</div>
+<div class="wrap">
+<div id="msg"></div>
+
+<section id="s-dash" class="sec on">
+ <div class="card"><h2>Tổng quan dữ liệu</h2><div id="kpis" class="grid"></div></div>
+ <div class="card"><h2>Dữ liệu</h2>
+  <div class="row">
+   <button class="p" id="bGH">Tải dữ liệu từ GitHub</button>
+   <button id="bImp">Import CSV/JSON</button>
+   <button id="bRe">Phân tích lại</button>
+   <button id="bExp">Xuất dữ liệu sạch (CSV)</button>
+   <button id="bLog">Xuất nhật ký lỗi (CSV)</button>
+   <button id="bClr">Xóa dữ liệu</button>
+  </div>
+  <input type="file" id="fIn" accept=".csv,.json,.txt" multiple hidden>
+  <div class="bar" id="barW" hidden><i id="bar"></i></div><div class="mu" id="barT"></div>
+  <div class="row"><label class="mu">Phạm vi phân tích:&nbsp;
+   <select id="scope"><option value="1">Hợp lệ (gồm kỳ có cảnh báo)</option><option value="0">Chỉ hợp lệ sạch (loại kỳ có cảnh báo)</option></select></label></div>
+  <details><summary>Dán văn bản CSV/JSON</summary><textarea id="paste" placeholder="Dán nội dung CSV (có dòng tiêu đề) hoặc JSON"></textarea><div class="row"><button id="bPaste">Nhập văn bản</button></div></details>
+ </div>
+ <div class="card"><details><summary>Hướng dẫn &amp; quy tắc kiểm định</summary>
+  <p class="mu">Dữ liệu chỉ nằm trong bộ nhớ phiên; đóng/tải lại trang là mất, cần tải hoặc nhập lại. Tải từ GitHub cần Internet (khoảng 120 MB, 88 tệp); nếu trình duyệt chặn, dùng Import.</p>
+  <p class="mu"><b>Kỳ hợp lệ</b> = đúng 20 số nguyên, mỗi số 1–80, không lặp số, có mã kỳ và ngày hợp lệ, không trùng mã kỳ với bản ghi khác. <b>Có cảnh báo</b> = hợp lệ về cấu trúc nhưng trạng thái ≠ confirmed, validation_status ≠ valid, nguồn gắn cảnh báo hoặc không rõ nguồn. "Hợp lệ về cấu trúc" không có nghĩa đã đối chiếu với nguồn chính thức. Không bản ghi nào bị loại mà không được ghi vào báo cáo chất lượng.</p>
+  <p class="mu">CSV/JSON thủ công: cần cột draw_id, draw_date và result_json (hoặc numbers/result, hoặc n1…n20); tùy chọn draw_status, validation_status, source.</p></details></div>
+</section>
+
+<section id="s-qa" class="sec"><div id="qa"></div></section>
+<section id="s-st" class="sec"><div id="st"></div></section>
+<section id="s-cy" class="sec"><div id="cy"></div></section>
+<section id="s-rk" class="sec"><div id="rk"></div></section>
+</div>
+<nav id="nav"><button data-t="dash" class="on">Tổng quan</button><button data-t="qa">Chất lượng</button><button data-t="st">Thống kê</button><button data-t="cy">Chu kỳ</button><button data-t="rk">Xếp hạng</button></nav>
+
+<script>
+//==CORE==
+const pick=(o,...k)=>{for(const x of k)if(o[x]!==undefined&&o[x]!==null&&o[x]!=='')return o[x]};
+function parseCSV(t){const rows=[];let i=0,n=t.length,row=[];if(t.charCodeAt(0)===65279)i=1;
+ while(i<n){let c=t.charCodeAt(i),v;
+  if(c===34){let j=i+1,s='';for(;;){const k=t.indexOf('"',j);if(k<0){s+=t.slice(j);i=n;break}
+    if(t.charCodeAt(k+1)===34){s+=t.slice(j,k+1);j=k+2}else{s+=t.slice(j,k);i=k+1;break}}v=s}
+  else{let j=i;while(j<n){const d=t.charCodeAt(j);if(d===44||d===10||d===13)break;j++}v=t.slice(i,j);i=j}
+  row.push(v);
+  const d=t.charCodeAt(i);
+  if(d===44){i++;if(i>=n)row.push('')}
+  else{if(d===13&&t.charCodeAt(i+1)===10)i++;i++;if(row.length>1||row[0]!=='')rows.push(row);row=[]}}
+ if(row.length)rows.push(row);return rows}
+function parseDate(s){s=String(s).trim();let y,m,d,x;
+ if(x=/^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s)){y=+x[1];m=+x[2];d=+x[3]}
+ else if(x=/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/.exec(s)){d=+x[1];m=+x[2];y=+x[3]}
+ else return null;
+ const t=new Date(Date.UTC(y,m-1,d));if(t.getUTCFullYear()!==y||t.getUTCMonth()!==m-1||t.getUTCDate()!==d)return null;
+ return y*10000+m*100+d}
+function getNums(o){let v=pick(o,'result_json','result','results','numbers','nums');
+ if(v===undefined){const a=[];for(let i=1;i<=20;i++){const x=pick(o,'n'+i,'n'+String(i).padStart(2,'0'));if(x!==undefined)a.push(x)}if(a.length)v=a}
+ if(v===undefined)return{miss:1};
+ if(typeof v==='string'){const s=v.trim();if(s[0]==='{'||s[0]==='['){try{v=JSON.parse(s)}catch(e){return{bad:1}}}else v=s.split(/[^0-9]+/).filter(Boolean)}
+ if(v&&!Array.isArray(v)&&typeof v==='object')v=v.numbers||v.result||v.results;
+ if(!Array.isArray(v))return{bad:1};
+ return{a:v.map(x=>typeof x==='number'?x:(/^\s*\d+\s*$/.test(x)?+x:NaN))}}
+function srcLabel(o){let a=pick(o,'attributes_json','attributes'),ds;
+ if(typeof a==='string'){const m=/"data_source"\s*:\s*"([^"]*)"/.exec(a);if(m)ds=m[1]}else if(a&&typeof a==='object')ds=a.data_source;
+ if(ds)return ds;const s=pick(o,'source','source_url');if(s===undefined)return'';
+ const m=/^https?:\/\/([^\/]+)/.exec(String(s));return m?m[1]:String(s).slice(0,40)}
+function mkRec(o,f,p){const e=[],w=[];let id=null,date=null,n=null;
+ const prod=pick(o,'product');if(prod!==undefined&&String(prod).trim().toLowerCase()!=='keno')e.push('SAI_SAN_PHAM');
+ const raw=pick(o,'draw_id','id','ky_quay','ma_ky','period');
+ if(raw===undefined)e.push('THIEU_MA');else{const s=String(raw).trim().replace(/^#/,'');if(/^\d{1,9}$/.test(s))id=+s;else e.push('MA_SAI')}
+ const dr=pick(o,'draw_date','date','ngay','ngay_quay');
+ if(dr===undefined)e.push('THIEU_NGAY');else{date=parseDate(dr);if(date===null)e.push('NGAY_SAI')}
+ const g=getNums(o);
+ if(g.miss)e.push('THIEU_KQ');else if(g.bad)e.push('KQ_SAI_DINH_DANG');
+ else{const a=g.a;if(a.some(x=>!Number.isInteger(x)))e.push('KQ_SAI_DINH_DANG');
+  else{if(a.length!==20)e.push('KHONG_DU_20');if(a.some(x=>x<1||x>80))e.push('NGOAI_PHAM_VI');if(new Set(a).size!==a.length)e.push('SO_LAP');if(!e.length)n=Uint8Array.from(a)}}
+ const ds=pick(o,'draw_status','status');if(ds!==undefined&&String(ds).trim().toLowerCase()!=='confirmed')w.push('TT_KHONG_XAC_NHAN');
+ const vs=pick(o,'validation_status');if(vs!==undefined&&String(vs).trim().toLowerCase()!=='valid')w.push('CHUA_KIEM');
+ let wj=o.validation_warnings_json!==undefined?o.validation_warnings_json:o.warnings;
+ if(typeof wj==='string'){wj=wj.trim();if(wj&&!['[]','{}','null'].includes(wj))w.push('CO_CANH_BAO')}else if(wj&&(Array.isArray(wj)?wj.length:Object.keys(wj).length))w.push('CO_CANH_BAO');
+ const s=srcLabel(o);if(!s)w.push('KHONG_RO_NGUON');
+ return{id,date,n,e,w,s,f,p,x:null,raw:e.length?(String(raw)+'|'+String(dr)+'|'+(g.a?g.a.join(' '):JSON.stringify(g.miss?'(thiếu)':'(sai)'))).slice(0,140):''}}
+function same(a,b){for(let i=0;i<20;i++)if(a[i]!==b[i])return false;return true}
+function analyze(pool,incWarn){
+ const A={total:pool.length,err:{},wrn:{},src:{},months:{},files:{},issues:[],cache:{}};
+ const seen=new Map();
+ for(const r of pool){r.x=null;A.files[r.f]=(A.files[r.f]||0)+1;if(r.e.length)continue;
+  const f=seen.get(r.id);if(!f){seen.set(r.id,r);continue}
+  if(f.date===r.date&&same(f.n,r.n))r.x='TRUNG_BAN_GHI';else{r.x='TRUNG_MA_XUNG_DOT';f.x='TRUNG_MA_XUNG_DOT'}}
+ let dup=0,invalid=0,missing=0,ok=0,warn=0;const good=[],inc=(m,k)=>m[k]=(m[k]||0)+1;
+ for(const r of pool){
+  if(r.e.length||r.x)A.issues.push(r);else if(r.w.length)A.issues.push(r);
+  if(r.e.length){invalid++;if(r.e.some(c=>c.startsWith('THIEU')))missing++;r.e.forEach(c=>inc(A.err,c));continue}
+  if(r.x==='TRUNG_BAN_GHI'){dup++;inc(A.err,r.x);continue}
+  if(r.x){invalid++;inc(A.err,r.x);continue}
+  good.push(r);if(r.w.length){warn++;r.w.forEach(c=>inc(A.wrn,c))}else ok++;
+  inc(A.src,r.s||'(không rõ)');inc(A.months,Math.floor(r.date/100))}
+ good.sort((a,b)=>a.id-b.id);
+ let gapIds=0,back=0;const gaps=[];
+ for(let i=1;i<good.length;i++){const d=good[i].id-good[i-1].id;if(d>1){gapIds+=d-1;gaps.push([good[i-1].id+1,good[i].id-1,d-1])}if(good[i].date<good[i-1].date)back++}
+ let dmin=null,dmax=null;for(const r of good){if(dmin===null||r.date<dmin)dmin=r.date;if(dmax===null||r.date>dmax)dmax=r.date}
+ const mm=[];if(dmin){let y=Math.floor(dmin/10000),m=Math.floor(dmin/100)%100;const ye=Math.floor(dmax/10000),me=Math.floor(dmax/100)%100;
+  while(y<ye||(y===ye&&m<=me)){const k=y*100+m;if(!A.months[k])mm.push(k);if(++m>12){m=1;y++}}}
+ const use=incWarn?good:good.filter(r=>!r.w.length),N=use.length,D=new Uint8Array(N*20);
+ use.forEach((r,i)=>D.set(r.n,i*20));
+ Object.assign(A,{dup,invalid,missing,ok,warn,good:good.length,gaps,gapIds,back,dmin,dmax,missMonths:mm,N,D,use});
+ return A}
+function winStats(A,W,full){const key=W+'|'+(full?1:0);if(A.cache[key])return A.cache[key];
+ const N=A.N,D=A.D,len=W?Math.min(W,N):N,st=N-len;
+ const cnt=new Int32Array(81),last=new Int32Array(81).fill(-1),cur=new Int32Array(81),mx=new Int32Array(81),gs=new Float64Array(81),gn=new Int32Array(81),gm=new Int32Array(81),seen=new Uint8Array(81);
+ const H=full?new Uint32Array(81*129):null;
+ for(let i=st;i<N;i++){const b=i*20;for(let k=0;k<20;k++)seen[D[b+k]]=1;
+  for(let x=1;x<=80;x++){if(seen[x]){seen[x]=0;cnt[x]++;if(++cur[x]>mx[x])mx[x]=cur[x];
+    if(last[x]>=0){const g=i-last[x];gs[x]+=g;gn[x]++;if(g>gm[x])gm[x]=g;if(H)H[x*129+(g>128?128:g)]++}last[x]=i}else cur[x]=0}}
+ let prev=null;if(W&&st-W>=0){prev=new Int32Array(81);for(let i=st-W;i<st;i++)for(let k=0;k<20;k++)prev[D[i*20+k]]++}
+ const rows=[];
+ for(let x=1;x<=80;x++){const abs=last[x]<0?len:N-1-last[x];
+  let pct=null;if(H&&gn[x]){let s=0;for(let g=0;g<=Math.min(abs,128);g++)s+=H[x*129+g];pct=s/gn[x]}
+  rows.push({x,c:cnt[x],r:cnt[x]/len,tr:prev?(cnt[x]-prev[x])/W:null,gap:gn[x]?gs[x]/gn[x]:null,gmax:gm[x],abs,ms:mx[x],cs:cur[x],pct,
+   z:len?(cnt[x]-len*.25)/Math.sqrt(len*.1875):0})}
+ return A.cache[key]={len,rows}}
+function ranking(A,w){const all=winStats(A,0,true).rows,r100=winStats(A,100,false).rows;
+ const mm=a=>{const lo=Math.min(...a),hi=Math.max(...a);return a.map(v=>hi>lo?(v-lo)/(hi-lo)*100:50)};
+ const sa=mm(all.map(r=>r.r)),sb=mm(r100.map(r=>r.r)),sc=mm(all.map(r=>-Math.min(r.abs,40)));
+ const W=w[0]+w[1]+w[2]||1,rk=(arr,f)=>{const o=arr.map((r,i)=>[f(r),i]).sort((a,b)=>b[0]-a[0]),res=[];o.forEach((p,i)=>res[p[1]]=i+1);return res};
+ const ra=rk(all,r=>r.r),rb=rk(r100,r=>r.r);
+ const rows=all.map((r,i)=>({x:r.x,sa:sa[i],sb:sb[i],sc:sc[i],score:(w[0]*sa[i]+w[1]*sb[i]+w[2]*sc[i])/W,
+  why:`Toàn lịch sử ${(r.r*100).toFixed(2)}% (hạng ${ra[i]}/80, z=${r.z.toFixed(1)}); ${r100[i].c}/${winStats(A,100,false).len} kỳ gần nhất (hạng ${rb[i]}/80); `+(r.abs===0?'vừa xuất hiện ở kỳ mới nhất':'vắng '+r.abs+' kỳ')+'.'}));
+ rows.sort((a,b)=>b.score-a.score);rows.forEach((r,i)=>r.rank=i+1);return rows}
+//==END==
+
+const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const LBL={THIEU_MA:'Thiếu mã kỳ',MA_SAI:'Mã kỳ sai định dạng',THIEU_NGAY:'Thiếu ngày quay',NGAY_SAI:'Ngày quay không hợp lệ',THIEU_KQ:'Thiếu kết quả',KQ_SAI_DINH_DANG:'Kết quả sai định dạng',KHONG_DU_20:'Kết quả không đúng 20 số',NGOAI_PHAM_VI:'Số ngoài khoảng 01–80',SO_LAP:'Số lặp trong cùng kỳ',SAI_SAN_PHAM:'Sản phẩm không phải Keno',TRUNG_BAN_GHI:'Bản ghi trùng (giống hệt)',TRUNG_MA_XUNG_DOT:'Trùng mã kỳ, nội dung khác nhau',TT_KHONG_XAC_NHAN:'Trạng thái kỳ ≠ confirmed (cảnh báo)',CHUA_KIEM:'validation_status ≠ valid (cảnh báo)',CO_CANH_BAO:'Nguồn gắn cảnh báo (cảnh báo)',KHONG_RO_NGUON:'Không rõ nguồn (cảnh báo)'};
+const S={pool:[],A:null,win:100,tab:'dash',sort:{},w:[55,30,15],top:10,flt:'all',busy:false};
+const p2=n=>String(n).padStart(2,'0'),fn=n=>Number(n).toLocaleString('vi'),pc=v=>v==null?'—':(v*100).toFixed(2)+'%';
+const fd=d=>d?p2(d%100)+'/'+p2(Math.floor(d/100)%100)+'/'+Math.floor(d/10000):'—';
+const fm=k=>p2(k%100)+'/'+Math.floor(k/100);
+const ball=x=>`<span class="ball">${p2(x)}</span>`;
+function msg(t,c){const d=document.createElement('div');d.className=c||'o';d.textContent=t;$('msg').prepend(d);while($('msg').children.length>6)$('msg').lastChild.remove()}
+function prog(f,t){$('barW').hidden=f==null;if(f!=null)$('bar').style.width=(f*100)+'%';$('barT').textContent=t||''}
+const tick=()=>new Promise(r=>setTimeout(r));
+function ingest(text,label){const t=text.replace(/^\uFEFF/,'').trim();if(!t)throw new Error('Tệp trống: '+label);
+ const out=[];
+ if(t[0]==='['||t[0]==='{'){let j;try{j=JSON.parse(t)}catch(e){throw new Error('JSON sai định dạng ('+label+'): '+e.message)}
+  const arr=Array.isArray(j)?j:['draws','data','records','rows','items'].map(k=>j[k]).find(Array.isArray);
+  if(!arr)throw new Error('JSON không chứa mảng kỳ quay ('+label+')');
+  arr.forEach((o,i)=>out.push(mkRec(o&&typeof o==='object'&&!Array.isArray(o)?o:{result:o},label,i+1)))}
+ else{const rows=parseCSV(t);if(rows.length<2)throw new Error('CSV không có dòng dữ liệu ('+label+')');
+  const h=rows[0].map(s=>s.trim().toLowerCase());
+  if(!h.some(x=>/^(draw_id|id|ky_quay|ma_ky|period)$/.test(x))||!h.some(x=>/^(result_json|result|results|numbers|nums|n1|n01)$/.test(x)))throw new Error('Không nhận diện được cột draw_id / kết quả trong '+label+'. Cần dòng tiêu đề, ví dụ: draw_id,draw_date,result_json');
+  for(let i=1;i<rows.length;i++){const o={},r=rows[i];for(let k=0;k<h.length;k++)o[h[k]]=r[k];out.push(mkRec(o,label,i))}}
+ return out}
+async function fetchT(u,ms){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);try{return await fetch(u,{signal:c.signal,cache:'no-store'})}finally{clearTimeout(t)}}
+function busy(b){S.busy=b;['bGH','bImp','bRe','bExp','bLog','bClr','bPaste'].forEach(i=>$(i).disabled=b)}
+async function loadGH(){busy(true);prog(0,'Đang tìm danh sách tệp…');
+ const B='https://raw.githubusercontent.com/NhanAZ-Data/vietlott-research/main/datasets/draws/keno/';let names=null;
+ try{const r=await fetchT('https://api.github.com/repos/NhanAZ-Data/vietlott-research/contents/datasets/draws/keno',20000);
+  if(r.ok){const j=await r.json();names=j.filter(x=>/^\d{4}-\d{2}\.csv$/.test(x.name)).map(x=>x.name)}}catch(e){}
+ if(!names||!names.length){names=[];const n=new Date();for(let y=2019,m=8;y<n.getFullYear()||(y===n.getFullYear()&&m<=n.getMonth()+1);){names.push(y+'-'+p2(m)+'.csv');if(++m>12){m=1;y++}}
+  msg('Không đọc được danh sách qua GitHub API (có thể bị giới hạn tốc độ); đang thử lần lượt từng tháng.','w')}
+ S.pool=S.pool.filter(r=>!r.f.startsWith('gh:'));
+ let done=0,okN=0,nf=0,recN=0;const fail=[],q=names.slice();
+ const worker=async()=>{while(q.length){const nm=q.shift();
+  try{const r=await fetchT(B+nm,90000);if(r.status===404)nf++;else if(!r.ok)throw new Error('HTTP '+r.status);
+   else{const recs=ingest(await r.text(),'gh:'+nm);for(const x of recs)S.pool.push(x);okN++;recN+=recs.length}}
+  catch(e){fail.push(nm+': '+(e.name==='AbortError'?'quá thời gian':e.message))}
+  done++;prog(done/names.length,`Đã xử lý ${done}/${names.length} tệp · ${fn(recN)} bản ghi`);await tick()}};
+ await Promise.all([1,2,3,4].map(worker));prog(null);
+ if(!okN){msg('Không tải được dữ liệu từ GitHub ('+(fail[0]||'không có tệp')+'). Có thể do mất Internet hoặc trình duyệt chặn truy cập khi mở file trực tiếp. Hãy dùng "Import CSV/JSON" với các tệp tải về từ repository.','e')}
+ else{msg(`Đã tải ${okN}/${names.length} tệp, ${fn(recN)} bản ghi từ GitHub.`,'o');
+  if(fail.length)msg(`${fail.length} tệp lỗi: `+fail.slice(0,5).join('; ')+(fail.length>5?'…':''),'w')}
+ busy(false);run()}
+async function importFiles(files){busy(true);let ok=0;
+ for(const f of files){try{prog(null);const recs=ingest(await f.text(),'file:'+f.name);for(const x of recs)S.pool.push(x);ok++;msg(`Đã đọc ${f.name}: ${fn(recs.length)} bản ghi.`,'o')}catch(e){msg(e.message,'e')}await tick()}
+ busy(false);if(ok)run()}
+function run(){busy(true);msg('Đang phân tích…','w');setTimeout(()=>{try{S.A=S.pool.length?analyze(S.pool,$('scope').value==='1'):null}catch(e){msg('Lỗi phân tích: '+e.message,'e')}
+ $('msg').firstChild&&$('msg').firstChild.textContent==='Đang phân tích…'&&$('msg').firstChild.remove();busy(false);render()},20)}
+function dl(name,text){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+text],{type:'text/csv;charset=utf-8'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+const q=s=>'"'+String(s).replace(/"/g,'""')+'"';
+function expClean(){const A=S.A;if(!A||!A.N)return msg('Chưa có dữ liệu hợp lệ để xuất.','e');
+ const L=['draw_id,draw_date,numbers,warnings,source'];for(const r of A.use)L.push([String(r.id).padStart(7,'0'),r.date?`${Math.floor(r.date/10000)}-${p2(Math.floor(r.date/100)%100)}-${p2(r.date%100)}`:'',q(Array.from(r.n).join(' ')),q(r.w.join(';')),q(r.s)].join(','));
+ dl('keno_du_lieu_sach.csv',L.join('\n'));msg(`Đã xuất ${fn(A.N)} kỳ (phạm vi hiện tại).`,'o')}
+function expLog(){const A=S.A;if(!A||!A.issues.length)return msg('Không có bản ghi lỗi/cảnh báo để xuất.','w');
+ const L=['nguon,dong,loai,ma_loi,du_lieu_tho'];for(const r of A.issues)L.push([q(r.f),r.p,r.e.length||r.x?'LOI':'CANH_BAO',q(r.e.concat(r.x?[r.x]:[],r.w).join(';')),q(r.raw)].join(','));
+ dl('keno_nhat_ky_loi.csv',L.join('\n'))}
+function tbl(el,key,cols,rows,def){const s=S.sort[key]||(S.sort[key]=def);
+ rows=rows.slice().sort((a,b)=>{const x=a[s.k],y=b[s.k];return((x==null)-(y==null))||(x-y)*s.d});
+ el.innerHTML='<div class="tw"><table><tr>'+cols.map(c=>`<th data-t="${key}" data-k="${c[0]}">${c[1]}${s.k===c[0]?(s.d>0?' ▲':' ▼'):''}</th>`).join('')+'</tr>'+rows.map(r=>'<tr>'+cols.map(c=>`<td${c[3]?' class="'+c[3]+'"':''}>${c[2]?c[2](r[c[0]],r):r[c[0]]}</td>`).join('')+'</tr>').join('')+'</table></div>'}
+const empty='<div class="card mu">Chưa có dữ liệu hợp lệ. Vào tab "Tổng quan" để tải từ GitHub hoặc import CSV/JSON.</div>';
+function render(){const A=S.A;
+ const has=A&&A.N>0;$('pill').textContent=!A?'Chưa có dữ liệu':has?(A.invalid+A.dup+A.warn?'Có cảnh báo':'Dữ liệu tốt'):'Không có kỳ hợp lệ';
+ $('pill').className='pill '+(!A?'':has&&!(A.invalid+A.dup+A.warn)?'ok':'wn');
+ const k=(b,s)=>`<div class="kpi"><b>${b}</b><span>${s}</span></div>`;
+ $('kpis').innerHTML=!A?k('0','Kỳ hợp lệ')+k('—','Kỳ mới nhất')+k('—','Ngày mới nhất')+k('—','Khoảng thời gian')+k('0','Bản ghi lỗi')+k('Chưa có','Tình trạng dữ liệu'):
+  (()=>{const l=A.use[A.use.length-1];return k(fn(A.good),'Kỳ hợp lệ (đang phân tích '+fn(A.N)+')')+k(l?String(l.id).padStart(7,'0'):'—','Kỳ mới nhất')+k(l?fd(l.date):'—','Ngày mới nhất')+k(A.dmin?fd(A.dmin)+' → '+fd(A.dmax):'—','Khoảng thời gian')+k(fn(A.invalid+A.dup),'Bản ghi lỗi/trùng (loại khỏi phân tích)')+k(A.invalid+A.dup+A.warn+A.gapIds+A.missMonths.length===0?'Tốt':fn(A.warn)+' cảnh báo'+(A.gapIds?', thiếu '+fn(A.gapIds)+' mã kỳ':''),'Tình trạng dữ liệu')})();
+ if(S.tab==='qa')rQA();if(S.tab==='st')rST();if(S.tab==='cy')rCY();if(S.tab==='rk')rRK()}
+function rQA(){const A=S.A,el=$('qa');if(!A){el.innerHTML=empty;return}
+ const m=(a,b,c)=>`<tr><td>${a}</td><td>${b}</td><td class="${c||''}">${c?'':''}</td></tr>`;
+ const R=[['Tổng bản ghi thu thập',fn(A.total)+' (từ '+Object.keys(A.files).length+' nguồn/tệp)'],['Kỳ hợp lệ sạch',fn(A.ok)],['Kỳ hợp lệ có cảnh báo',fn(A.warn)],['Kỳ không hợp lệ',fn(A.invalid)],['Bản ghi trùng (giống hệt, đã loại)',fn(A.dup)],['Kỳ thiếu dữ liệu (thiếu trường)',fn(A.missing)],['Tỷ lệ hợp lệ (sạch + cảnh báo)',A.total?(A.good/A.total*100).toFixed(3)+'%':'—'],['Khoảng thời gian',A.dmin?fd(A.dmin)+' → '+fd(A.dmax):'—'],['Số tháng có dữ liệu',Object.keys(A.months).length],['Tháng thiếu trong khoảng',A.missMonths.length?A.missMonths.map(fm).join(', '):'không'],['Mã kỳ thiếu giữa các kỳ có mặt',fn(A.gapIds)+' mã trong '+fn(A.gaps.length)+' khoảng'],['Kỳ có ngày lùi so với kỳ trước (theo mã)',fn(A.back)]];
+ const E=Object.entries(A.err).concat(Object.entries(A.wrn)).sort((a,b)=>b[1]-a[1]);
+ const flt=S.flt,iss=A.issues.filter(r=>flt==='all'||(flt==='err'&&r.e.length&&!r.x)||(flt==='dup'&&r.x)||(flt==='w'&&!r.e.length&&!r.x&&r.w.length));
+ el.innerHTML=`<div class="card"><h2>Báo cáo chất lượng</h2><div class="tw"><table>${R.map(r=>`<tr><td>${r[0]}</td><td style="white-space:normal">${r[1]}</td></tr>`).join('')}</table></div></div>
+ <div class="card"><h2>Lỗi và cảnh báo theo loại</h2>${E.length?'<table>'+E.map(e=>`<tr><td style="white-space:normal">${LBL[e[0]]||e[0]}</td><td>${fn(e[1])}</td></tr>`).join('')+'</table>':'<span class="mu">Không có.</span>'}</div>
+ <div class="card"><h2>Nguồn dữ liệu</h2><table>${Object.entries(A.src).sort((a,b)=>b[1]-a[1]).map(e=>`<tr><td>${esc(e[0])}</td><td>${fn(e[1])}</td></tr>`).join('')}</table><p class="mu">Nhãn nguồn do chính tệp dữ liệu khai báo; ứng dụng chưa đối chiếu với kết quả chính thức của Vietlott, và trạng thái "confirmed" không phải bằng chứng xác thực tuyệt đối.</p></div>
+ <div class="card"><h2>Tháng có dữ liệu</h2>${Object.keys(A.months).sort().map(k=>`<span class="chip">${fm(+k)}: ${fn(A.months[k])}</span>`).join('')}${A.missMonths.map(k=>`<span class="chip er">${fm(k)}: thiếu</span>`).join('')}</div>
+ <div class="card"><h2>Khoảng mã kỳ bị thiếu</h2>${A.gaps.length?'<div class="tw"><table><tr><th>Từ mã</th><th>Đến mã</th><th>Số kỳ</th></tr>'+A.gaps.slice(0,60).map(g=>`<tr><td>${g[0]}</td><td>${g[1]}</td><td>${fn(g[2])}</td></tr>`).join('')+'</table></div>'+(A.gaps.length>60?`<p class="mu">Hiển thị 60/${fn(A.gaps.length)} khoảng đầu.</p>`:''):'<span class="mu">Không phát hiện khoảng thiếu trong dải mã kỳ hiện có (không phát hiện được phần thiếu ở hai đầu).</span>'}</div>
+ <div class="card"><h2>Nhật ký bản ghi lỗi / cảnh báo (${fn(iss.length)})</h2><div class="row">${[['all','Tất cả'],['err','Lỗi'],['dup','Trùng'],['w','Cảnh báo']].map(f=>`<button class="chip ${flt===f[0]?'on':''}" data-f="${f[0]}">${f[1]}</button>`).join('')}</div>
+ <div class="tw"><table><tr><th>Nguồn</th><th>Dòng</th><th>Mã lỗi</th><th>Dữ liệu thô</th></tr>${iss.slice(0,200).map(r=>`<tr><td>${esc(r.f)}</td><td>${r.p}</td><td style="white-space:normal;text-align:left">${esc(r.e.concat(r.x?[r.x]:[],r.w).map(c=>LBL[c]||c).join('; '))}</td><td>${esc(r.raw)}</td></tr>`).join('')}</table></div>${iss.length>200?`<p class="mu">Hiển thị 200/${fn(iss.length)}; xuất nhật ký CSV để xem đầy đủ.</p>`:''}</div>`}
+function chart(rows){const W=800,H=190,v=rows.map(r=>r.r),lo=Math.min(...v),hi=Math.max(...v),pad=(hi-lo)*.15||.01,a=Math.max(0,lo-pad),b=hi+pad,y=t=>H-14-(t-a)/(b-a)*(H-30),
+ srt=rows.slice().sort((p,q)=>q.r-p.r),top=new Set(srt.slice(0,10).map(r=>r.x)),bot=new Set(srt.slice(-10).map(r=>r.x));
+ return`<div class="tw"><svg viewBox="0 0 ${W} ${H+14}" style="min-width:640px;width:100%">`+rows.map((r,i)=>{const x=6+i*9.8,yy=y(r.r);return`<rect x="${x}" y="${yy}" width="7.6" height="${H-14-yy}" fill="${top.has(r.x)?'#4cc9a6':bot.has(r.x)?'#f5b942':'#5aa9ff'}"><title>${p2(r.x)}: ${pc(r.r)}</title></rect>`+(r.x%5===0||r.x===1?`<text x="${x+3.8}" y="${H+8}" font-size="9" fill="#8b98ad" text-anchor="middle">${r.x}</text>`:'')}).join('')+
+ (.25>=a&&.25<=b?`<line x1="0" x2="${W}" y1="${y(.25)}" y2="${y(.25)}" stroke="#ff6b6b" stroke-dasharray="4 3"/><text x="${W-2}" y="${y(.25)-3}" font-size="9" fill="#ff6b6b" text-anchor="end">kỳ vọng 25%</text>`:'')+
+ `<text x="4" y="10" font-size="9" fill="#8b98ad">trục dọc: ${pc(b)} → ${pc(a)} (xanh = top 10, vàng = thấp nhất 10)</text></svg></div>`}
+function rST(){const A=S.A,el=$('st');if(!A||!A.N){el.innerHTML=empty;return}
+ const ws=winStats(A,S.win,S.win===0),rows=ws.rows,s=rows.slice().sort((a,b)=>b.c-a.c||a.x-b.x);
+ const names={30:'30 kỳ',50:'50 kỳ',100:'100 kỳ',500:'500 kỳ',0:'Toàn bộ'};
+ el.innerHTML=`<div class="card"><h2>Thống kê theo cửa sổ</h2><div>${[30,50,100,500,0].map(w=>`<button class="chip ${S.win===w?'on':''}" data-w="${w}">${names[w]}</button>`).join('')}</div>
+ <p class="mu">Đang dùng <b>${fn(ws.len)}</b> kỳ gần nhất${S.win&&A.N<S.win?` (dữ liệu chỉ có ${fn(A.N)} kỳ, ít hơn cửa sổ ${S.win})`:''}. Tỷ lệ kỳ vọng nếu hoàn toàn ngẫu nhiên: 25% mỗi số.</p>
+ <p>Nhiều nhất: ${s.slice(0,3).map(r=>ball(r.x)+' '+r.c).join(' · ')}<br>Ít nhất: ${s.slice(-3).reverse().map(r=>ball(r.x)+' '+r.c).join(' · ')}</p>
+ <p><b>20 số có tần suất cao nhất:</b><br>${s.slice(0,20).map(r=>ball(r.x)).join(' ')}</p></div>
+ <div class="card"><h2>Phân phối tần suất 01–80</h2>${chart(rows)}</div>
+ <div class="card"><h2>Chi tiết từng số</h2><div id="stT"></div><p class="mu">"Xu hướng" = chênh lệch tỷ lệ so với cửa sổ liền trước cùng độ dài (điểm %). "Vắng" = số kỳ kể từ lần xuất hiện gần nhất. Mô tả quan sát, không phải quy luật.</p></div>`;
+ tbl($('stT'),'st',[['x','Số',x=>ball(x)],['c','Lần'],['r','Tỷ lệ',pc],['tr','Xu hướng',v=>v==null?'—':(v>0?'▲ +':v<0?'▼ ':'')+(v*100).toFixed(1)],['gap','Khoảng cách TB',v=>v==null?'—':v.toFixed(2)],['abs','Vắng'],['cs','Liên tiếp (hiện tại)'],['ms','Liên tiếp (dài nhất)']],rows,{k:'c',d:-1})}
+function rCY(){const A=S.A,el=$('cy');if(!A||!A.N){el.innerHTML=empty;return}
+ const ws=winStats(A,0,true);
+ el.innerHTML=`<div class="card"><h2>Phân tích chu kỳ (toàn bộ ${fn(A.N)} kỳ)</h2><p class="mu">Khoảng cách = số kỳ giữa hai lần xuất hiện liên tiếp. Nếu hoàn toàn ngẫu nhiên, khoảng cách trung bình lý thuyết là 4 kỳ. "Phân vị" = tỷ lệ khoảng cách lịch sử ≤ số kỳ đang vắng. Đây chỉ là mô tả; <b>không phải quy luật</b>, số vắng lâu không có nghĩa sắp xuất hiện.</p><div id="cyT"></div></div>`;
+ tbl($('cyT'),'cy',[['x','Số',x=>ball(x)],['gap','Chu kỳ TB',v=>v==null?'—':v.toFixed(2)],['gmax','Chu kỳ dài nhất'],['abs','Đang vắng (kỳ)'],['ratio','Vắng / TB',v=>v==null?'—':v.toFixed(2)+'×'],['pct','Phân vị',v=>v==null?'—':(v*100).toFixed(1)+'%']],ws.rows.map(r=>({...r,ratio:r.gap?r.abs/r.gap:null})),{k:'abs',d:-1})}
+function rRK(){const A=S.A,el=$('rk');if(!A||!A.N){el.innerHTML=empty;return}
+ const w=S.w.map(v=>Math.max(0,+v||0)),all=winStats(A,0,true).rows,rk=ranking(A,w).slice(0,S.top),mz=all.reduce((m,r)=>Math.max(m,Math.abs(r.z)),0);
+ el.innerHTML=`<div class="card"><h2>Bảng xếp hạng tham khảo</h2>
+ <p class="mu" style="color:#f3d894">Đây không phải xác suất trúng và không dự đoán kỳ sau. Xếp hạng chỉ tóm tắt dữ liệu quá khứ.</p>
+ <div class="row"><label>Toàn lịch sử % <input id="w0" type="number" min="0" max="100" value="${S.w[0]}" style="width:70px"></label><label>100 kỳ % <input id="w1" type="number" min="0" max="100" value="${S.w[1]}" style="width:70px"></label><label>Độ mới % <input id="w2" type="number" min="0" max="100" value="${S.w[2]}" style="width:70px"></label></div>
+ <div>${[10,20].map(n=>`<button class="chip ${S.top===n?'on':''}" data-top="${n}">Top ${n}</button>`).join('')}</div>
+ <div id="rkT"></div>
+ <details open><summary>Công thức</summary><p class="mu">Điểm = (w₁·A + w₂·B + w₃·C) / (w₁+w₂+w₃), trọng số tự chuẩn hóa về tổng 100%.<br>A = tỷ lệ xuất hiện toàn lịch sử; B = tỷ lệ trong ${Math.min(100,A.N)} kỳ gần nhất; C = độ mới = −min(số kỳ đang vắng, 40). Mỗi thành phần được chuẩn hóa min–max về 0–100 trên 80 số trước khi cộng.<br><b>Hạn chế:</b> với ${fn(A.N)} kỳ, tần suất giữa các số chênh rất ít (độ lệch lớn nhất so với kỳ vọng: |z| = ${mz.toFixed(1)}); chuẩn hóa min–max phóng đại chênh lệch nhỏ đó thành điểm cách xa, nên điểm cao không có nghĩa số đó "đặc biệt".</p></details></div>`;
+ tbl($('rkT'),'rk',[['rank','#'],['x','Số',x=>ball(x)],['score','Điểm',v=>v.toFixed(1)],['sa','A',v=>v.toFixed(0)],['sb','B',v=>v.toFixed(0)],['sc','C',v=>v.toFixed(0)],['why','Lý do','','why']],rk,{k:'rank',d:1});
+ ['w0','w1','w2'].forEach((id,i)=>$(id).oninput=e=>{S.w[i]=e.target.value;const f=document.activeElement.id,c=e.target.selectionStart;rRK();const n=$(f);if(n){n.focus()}})}
+document.addEventListener('click',e=>{const t=e.target;
+ if(t.dataset.t&&t.tagName==='TH'){const s=S.sort[t.dataset.t];s.d=s.k===t.dataset.k?-s.d:-1;s.k=t.dataset.k;if(t.dataset.t==='st'||t.dataset.t==='cy'||t.dataset.t==='rk')render();return}
+ if(t.dataset.w!==undefined){S.win=+t.dataset.w;rST()}
+ if(t.dataset.top){S.top=+t.dataset.top;rRK()}
+ if(t.dataset.f){S.flt=t.dataset.f;rQA()}
+ if(t.parentElement&&t.parentElement.id==='nav'){S.tab=t.dataset.t;document.querySelectorAll('.sec').forEach(s=>s.classList.toggle('on',s.id==='s-'+S.tab));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b===t));render();scrollTo(0,0)}});
+$('bGH').onclick=()=>loadGH();$('bImp').onclick=()=>$('fIn').click();
+$('fIn').onchange=e=>{const f=[...e.target.files];e.target.value='';if(f.length)importFiles(f)};
+$('bRe').onclick=()=>{if(!S.pool.length)return msg('Chưa có dữ liệu để phân tích.','e');run()};
+$('scope').onchange=()=>{if(S.pool.length)run()};
+$('bExp').onclick=expClean;$('bLog').onclick=expLog;
+$('bClr').onclick=()=>{S.pool=[];S.A=null;$('msg').innerHTML='';msg('Đã xóa toàn bộ dữ liệu khỏi bộ nhớ phiên.','o');render()};
+$('bPaste').onclick=async()=>{const t=$('paste').value;if(!t.trim())return msg('Ô văn bản đang trống.','e');
+ try{const recs=ingest(t,'văn bản dán');for(const x of recs)S.pool.push(x);msg(`Đã đọc ${fn(recs.length)} bản ghi từ văn bản.`,'o');$('paste').value='';run()}catch(e){msg(e.message,'e')}};
+render();
+</script></body></html>
