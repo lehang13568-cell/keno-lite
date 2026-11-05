@@ -74,8 +74,10 @@ textarea{width:100%;min-height:80px}
 <section id="s-st" class="sec"><div id="st"></div></section>
 <section id="s-cy" class="sec"><div id="cy"></div></section>
 <section id="s-rk" class="sec"><div id="rk"></div></section>
+<section id="s-sg" class="sec"><div id="sg"></div></section>
 </div>
-<nav id="nav"><button data-t="dash" class="on">Tổng quan</button><button data-t="qa">Chất lượng</button><button data-t="st">Thống kê</button><button data-t="cy">Chu kỳ</button><button data-t="rk">Xếp hạng</button></nav>
+<nav id="nav"><button data-t="dash" class="on">Tổng quan</button><button data-t="qa">Chất lượng</button><button data-t="st">Thống kê</button><button data-t="cy">Chu kỳ</button><button data-t="rk">Xếp hạng</button><button data-t="sg">Gợi ý</button></nav>
+<style>@media(max-width:480px){nav button{font-size:11px;padding:10px 1px}}</style>
 
 <script>
 //==CORE==
@@ -174,7 +176,7 @@ function ranking(A,w){const all=winStats(A,0,true).rows,r100=winStats(A,100,fals
 
 const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const LBL={THIEU_MA:'Thiếu mã kỳ',MA_SAI:'Mã kỳ sai định dạng',THIEU_NGAY:'Thiếu ngày quay',NGAY_SAI:'Ngày quay không hợp lệ',THIEU_KQ:'Thiếu kết quả',KQ_SAI_DINH_DANG:'Kết quả sai định dạng',KHONG_DU_20:'Kết quả không đúng 20 số',NGOAI_PHAM_VI:'Số ngoài khoảng 01–80',SO_LAP:'Số lặp trong cùng kỳ',SAI_SAN_PHAM:'Sản phẩm không phải Keno',TRUNG_BAN_GHI:'Bản ghi trùng (giống hệt)',TRUNG_MA_XUNG_DOT:'Trùng mã kỳ, nội dung khác nhau',TT_KHONG_XAC_NHAN:'Trạng thái kỳ ≠ confirmed (cảnh báo)',CHUA_KIEM:'validation_status ≠ valid (cảnh báo)',CO_CANH_BAO:'Nguồn gắn cảnh báo (cảnh báo)',KHONG_RO_NGUON:'Không rõ nguồn (cảnh báo)'};
-const S={pool:[],A:null,win:100,tab:'dash',sort:{},w:[55,30,15],top:10,flt:'all',busy:false};
+const S={pool:[],A:null,win:100,tab:'dash',sort:{},w:[55,30,15],top:10,flt:'all',busy:false,pickN:5,sgMode:'bal',sgSets:[]};
 const p2=n=>String(n).padStart(2,'0'),fn=n=>Number(n).toLocaleString('vi'),pc=v=>v==null?'—':(v*100).toFixed(2)+'%';
 const fd=d=>d?p2(d%100)+'/'+p2(Math.floor(d/100)%100)+'/'+Math.floor(d/10000):'—';
 const fm=k=>p2(k%100)+'/'+Math.floor(k/100);
@@ -216,7 +218,7 @@ async function loadGH(){busy(true);prog(0,'Đang tìm danh sách tệp…');
 async function importFiles(files){busy(true);let ok=0;
  for(const f of files){try{prog(null);const recs=ingest(await f.text(),'file:'+f.name);for(const x of recs)S.pool.push(x);ok++;msg(`Đã đọc ${f.name}: ${fn(recs.length)} bản ghi.`,'o')}catch(e){msg(e.message,'e')}await tick()}
  busy(false);if(ok)run()}
-function run(){busy(true);msg('Đang phân tích…','w');setTimeout(()=>{try{S.A=S.pool.length?analyze(S.pool,$('scope').value==='1'):null}catch(e){msg('Lỗi phân tích: '+e.message,'e')}
+function run(){busy(true);msg('Đang phân tích…','w');setTimeout(()=>{try{S.A=S.pool.length?analyze(S.pool,$('scope').value==='1'):null;S.sgSets=[]}catch(e){msg('Lỗi phân tích: '+e.message,'e')}
  $('msg').firstChild&&$('msg').firstChild.textContent==='Đang phân tích…'&&$('msg').firstChild.remove();busy(false);render()},20)}
 function dl(name,text){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+text],{type:'text/csv;charset=utf-8'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
 const q=s=>'"'+String(s).replace(/"/g,'""')+'"';
@@ -236,7 +238,7 @@ function render(){const A=S.A;
  const k=(b,s)=>`<div class="kpi"><b>${b}</b><span>${s}</span></div>`;
  $('kpis').innerHTML=!A?k('0','Kỳ hợp lệ')+k('—','Kỳ mới nhất')+k('—','Ngày mới nhất')+k('—','Khoảng thời gian')+k('0','Bản ghi lỗi')+k('Chưa có','Tình trạng dữ liệu'):
   (()=>{const l=A.use[A.use.length-1];return k(fn(A.good),'Kỳ hợp lệ (đang phân tích '+fn(A.N)+')')+k(l?String(l.id).padStart(7,'0'):'—','Kỳ mới nhất')+k(l?fd(l.date):'—','Ngày mới nhất')+k(A.dmin?fd(A.dmin)+' → '+fd(A.dmax):'—','Khoảng thời gian')+k(fn(A.invalid+A.dup),'Bản ghi lỗi/trùng (loại khỏi phân tích)')+k(A.invalid+A.dup+A.warn+A.gapIds+A.missMonths.length===0?'Tốt':fn(A.warn)+' cảnh báo'+(A.gapIds?', thiếu '+fn(A.gapIds)+' mã kỳ':''),'Tình trạng dữ liệu')})();
- if(S.tab==='qa')rQA();if(S.tab==='st')rST();if(S.tab==='cy')rCY();if(S.tab==='rk')rRK()}
+ if(S.tab==='qa')rQA();if(S.tab==='st')rST();if(S.tab==='cy')rCY();if(S.tab==='rk')rRK();if(S.tab==='sg')rSG()}
 function rQA(){const A=S.A,el=$('qa');if(!A){el.innerHTML=empty;return}
  const m=(a,b,c)=>`<tr><td>${a}</td><td>${b}</td><td class="${c||''}">${c?'':''}</td></tr>`;
  const R=[['Tổng bản ghi thu thập',fn(A.total)+' (từ '+Object.keys(A.files).length+' nguồn/tệp)'],['Kỳ hợp lệ sạch',fn(A.ok)],['Kỳ hợp lệ có cảnh báo',fn(A.warn)],['Kỳ không hợp lệ',fn(A.invalid)],['Bản ghi trùng (giống hệt, đã loại)',fn(A.dup)],['Kỳ thiếu dữ liệu (thiếu trường)',fn(A.missing)],['Tỷ lệ hợp lệ (sạch + cảnh báo)',A.total?(A.good/A.total*100).toFixed(3)+'%':'—'],['Khoảng thời gian',A.dmin?fd(A.dmin)+' → '+fd(A.dmax):'—'],['Số tháng có dữ liệu',Object.keys(A.months).length],['Tháng thiếu trong khoảng',A.missMonths.length?A.missMonths.map(fm).join(', '):'không'],['Mã kỳ thiếu giữa các kỳ có mặt',fn(A.gapIds)+' mã trong '+fn(A.gaps.length)+' khoảng'],['Kỳ có ngày lùi so với kỳ trước (theo mã)',fn(A.back)]];
@@ -278,18 +280,62 @@ function rRK(){const A=S.A,el=$('rk');if(!A||!A.N){el.innerHTML=empty;return}
  <details open><summary>Công thức</summary><p class="mu">Điểm = (w₁·A + w₂·B + w₃·C) / (w₁+w₂+w₃), trọng số tự chuẩn hóa về tổng 100%.<br>A = tỷ lệ xuất hiện toàn lịch sử; B = tỷ lệ trong ${Math.min(100,A.N)} kỳ gần nhất; C = độ mới = −min(số kỳ đang vắng, 40). Mỗi thành phần được chuẩn hóa min–max về 0–100 trên 80 số trước khi cộng.<br><b>Hạn chế:</b> với ${fn(A.N)} kỳ, tần suất giữa các số chênh rất ít (độ lệch lớn nhất so với kỳ vọng: |z| = ${mz.toFixed(1)}); chuẩn hóa min–max phóng đại chênh lệch nhỏ đó thành điểm cách xa, nên điểm cao không có nghĩa số đó "đặc biệt".</p></details></div>`;
  tbl($('rkT'),'rk',[['rank','#'],['x','Số',x=>ball(x)],['score','Điểm',v=>v.toFixed(1)],['sa','A',v=>v.toFixed(0)],['sb','B',v=>v.toFixed(0)],['sc','C',v=>v.toFixed(0)],['why','Lý do','','why']],rk,{k:'rank',d:1});
  ['w0','w1','w2'].forEach((id,i)=>$(id).oninput=e=>{S.w[i]=e.target.value;const f=document.activeElement.id,c=e.target.selectionStart;rRK();const n=$(f);if(n){n.focus()}})}
+function genSets(A,n,mode,count){
+ const rk=ranking(A,S.w), byAbs=winStats(A,0,true).rows.slice().sort((a,b)=>b.abs-a.abs||a.x-b.x);
+ const hot=rk.map(r=>r.x), cold=byAbs.map(r=>r.x);
+ const mid=rk.slice().sort((a,b)=>Math.abs(a.score-50)-Math.abs(b.score-50)).map(r=>r.x);
+ const pool=mode==='hot'?hot:mode==='cold'?cold:mode==='mix'?hot.slice(0,40).concat(cold.slice(0,40)):mid;
+ const used=new Set(),sets=[];
+ const take=(src,k)=>{const out=[];for(const x of src){if(out.length>=k)break;if(!used.has(x)){out.push(x);used.add(x)}}return out};
+ for(let s=0;s<count;s++){
+  used.clear();
+  let nums;
+  if(mode==='bal'){
+   const h=take(hot,Math.ceil(n*0.4)), c=take(cold,Math.ceil(n*0.3));
+   const rest=n-h.length-c.length;const m=take(mid.filter(x=>!used.has(x)),rest);
+   nums=h.concat(c,m).slice(0,n);
+  }else if(mode==='mix'){
+   const half=Math.floor(n/2);nums=take(hot,half).concat(take(cold,n-half));
+  }else nums=take(pool,n);
+  // nếu thiếu (hiếm) thì lấy random còn lại
+  if(nums.length<n){for(let x=1;x<=80&&nums.length<n;x++)if(!used.has(x)){nums.push(x);used.add(x)}}
+  nums.sort((a,b)=>a-b);
+  sets.push({nums,label:mode==='hot'?'Nóng':mode==='cold'?'Lạnh':mode==='mix'?'Nóng+Lạnh':'Cân bằng'});
+ }
+ return sets}
+function rSG(){const A=S.A,el=$('sg');if(!A||!A.N){el.innerHTML=empty;return}
+ const modes=[['bal','Cân bằng'],['hot','Thiên nóng'],['cold','Thiên lạnh'],['mix','Nóng + Lạnh']];
+ if(!S.sgSets.length)S.sgSets=genSets(A,S.pickN,S.sgMode,5);
+ el.innerHTML=`<div class="card"><h2>Gợi ý bộ số tham khảo</h2>
+ <p class="mu" style="color:#f3d894">⚠ Chỉ mô tả dữ liệu quá khứ, <b>không phải dự đoán</b> và không tăng khả năng trúng. Keno là trò chơi ngẫu nhiên.</p>
+ <div class="row"><label>Số lượng số:&nbsp;<select id="pickN">${[2,3,4,5,6,7,8,9,10].map(n=>`<option value="${n}" ${S.pickN===n?'selected':''}>${n} số</option>`).join('')}</select></label></div>
+ <div class="row">${modes.map(m=>`<button class="chip ${S.sgMode===m[0]?'on':''}" data-mode="${m[0]}">${m[1]}</button>`).join('')}</div>
+ <div class="row"><button class="p" id="bGen">Tạo lại gợi ý</button></div>
+ <div id="sgList"></div>
+ <details><summary>Cách tạo gợi ý</summary>
+ <p class="mu"><b>Cân bằng</b>: kết hợp số xếp hạng cao (nóng), số vắng lâu (lạnh) và số trung bình.<br>
+ <b>Thiên nóng</b>: ưu tiên số có điểm xếp hạng cao (tần suất + độ mới).<br>
+ <b>Thiên lạnh</b>: ưu tiên số đang vắng nhiều kỳ nhất.<br>
+ <b>Nóng + Lạnh</b>: nửa nóng, nửa lạnh.<br>
+ Mỗi lần bấm “Tạo lại” sẽ lấy bộ khác (tránh trùng số giữa các bộ trong cùng lần tạo).</p></details></div>`;
+ $('sgList').innerHTML=S.sgSets.map((s,i)=>`<div class="card" style="margin-top:8px"><div class="mu">Bộ ${i+1} · ${s.label}</div>
+ <div style="margin:8px 0;line-height:1.8">${s.nums.map(x=>ball(x)).join(' ')}</div>
+ <div class="mu" style="font-size:12px">${s.nums.map(x=>p2(x)).join(' – ')}</div></div>`).join('');
+ $('pickN').onchange=e=>{S.pickN=+e.target.value;S.sgSets=genSets(A,S.pickN,S.sgMode,5);rSG()};
+ $('bGen').onclick=()=>{S.sgSets=genSets(A,S.pickN,S.sgMode,5);rSG()}}
 document.addEventListener('click',e=>{const t=e.target;
  if(t.dataset.t&&t.tagName==='TH'){const s=S.sort[t.dataset.t];s.d=s.k===t.dataset.k?-s.d:-1;s.k=t.dataset.k;if(t.dataset.t==='st'||t.dataset.t==='cy'||t.dataset.t==='rk')render();return}
  if(t.dataset.w!==undefined){S.win=+t.dataset.w;rST()}
  if(t.dataset.top){S.top=+t.dataset.top;rRK()}
  if(t.dataset.f){S.flt=t.dataset.f;rQA()}
+ if(t.dataset.mode){S.sgMode=t.dataset.mode;S.sgSets=genSets(S.A,S.pickN,S.sgMode,5);rSG()}
  if(t.parentElement&&t.parentElement.id==='nav'){S.tab=t.dataset.t;document.querySelectorAll('.sec').forEach(s=>s.classList.toggle('on',s.id==='s-'+S.tab));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b===t));render();scrollTo(0,0)}});
 $('bGH').onclick=()=>loadGH();$('bImp').onclick=()=>$('fIn').click();
 $('fIn').onchange=e=>{const f=[...e.target.files];e.target.value='';if(f.length)importFiles(f)};
 $('bRe').onclick=()=>{if(!S.pool.length)return msg('Chưa có dữ liệu để phân tích.','e');run()};
 $('scope').onchange=()=>{if(S.pool.length)run()};
 $('bExp').onclick=expClean;$('bLog').onclick=expLog;
-$('bClr').onclick=()=>{S.pool=[];S.A=null;$('msg').innerHTML='';msg('Đã xóa toàn bộ dữ liệu khỏi bộ nhớ phiên.','o');render()};
+$('bClr').onclick=()=>{S.pool=[];S.A=null;S.sgSets=[];$('msg').innerHTML='';msg('Đã xóa toàn bộ dữ liệu khỏi bộ nhớ phiên.','o');render()};
 $('bPaste').onclick=async()=>{const t=$('paste').value;if(!t.trim())return msg('Ô văn bản đang trống.','e');
  try{const recs=ingest(t,'văn bản dán');for(const x of recs)S.pool.push(x);msg(`Đã đọc ${fn(recs.length)} bản ghi từ văn bản.`,'o');$('paste').value='';run()}catch(e){msg(e.message,'e')}};
 render();
